@@ -14,14 +14,14 @@ import (
 
 type ExchangeOrderBuilderImplV2 struct {
 	chainId       *big.Int
-	saltGenerator func() *big.Int
+	saltGenerator func() int64
 }
 
 var _ ExchangeOrderBuilderV2 = (*ExchangeOrderBuilderImplV2)(nil)
 
-func NewExchangeOrderBuilderImplV2(chainId *big.Int, saltGenerator func() *big.Int) *ExchangeOrderBuilderImplV2 {
+func NewExchangeOrderBuilderImplV2(chainId *big.Int, saltGenerator func() int64) *ExchangeOrderBuilderImplV2 {
 	if saltGenerator == nil {
-		saltGenerator = utils.GenerateRandomSaltBigInt
+		saltGenerator = utils.GenerateRandomSalt
 	}
 	return &ExchangeOrderBuilderImplV2{
 		chainId:       chainId,
@@ -108,18 +108,8 @@ func (e *ExchangeOrderBuilderImplV2) BuildOrder(orderData *model.OrderDataV2) (*
 		return nil, fmt.Errorf("can't parse Timestamp: %s as valid *big.Int", orderData.Timestamp)
 	}
 
-	generatedSalt := e.saltGenerator()
-	if generatedSalt == nil {
-		return nil, fmt.Errorf("salt generator returned nil")
-	}
-
-	salt := new(big.Int).Set(generatedSalt)
-	if salt.Sign() < 0 {
-		return nil, fmt.Errorf("salt must be non-negative")
-	}
-
 	return &model.OrderV2{
-		Salt:          salt,
+		Salt:          new(big.Int).SetInt64(e.saltGenerator()),
 		Maker:         common.HexToAddress(orderData.Maker),
 		Signer:        signer,
 		TokenID:       tokenId,
