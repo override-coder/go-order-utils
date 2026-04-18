@@ -82,6 +82,8 @@ type OrderV2 struct {
 
 	// Builder of the order.
 	Builder common.Hash `json:"builder"`
+
+	Expiration *big.Int `json:"expiration,omitempty"`
 }
 
 type SignedOrderV2 struct {

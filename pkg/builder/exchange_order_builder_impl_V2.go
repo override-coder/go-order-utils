@@ -85,6 +85,14 @@ func (e *ExchangeOrderBuilderImplV2) BuildOrder(orderData *model.OrderDataV2) (*
 		return nil, fmt.Errorf("can't parse TokenId: %s as valid *big.Int", orderData.TokenID)
 	}
 
+	var expiration *big.Int
+	if orderData.Expiration == "" {
+		orderData.Expiration = "0"
+	}
+	if expiration, ok = new(big.Int).SetString(orderData.Expiration, 10); !ok {
+		return nil, fmt.Errorf("can't parse Expiration: %s as valid *big.Int", orderData.Expiration)
+	}
+
 	var makerAmount *big.Int
 	if makerAmount, ok = new(big.Int).SetString(orderData.MakerAmount, 10); !ok {
 		return nil, fmt.Errorf("can't parse MakerAmount: %s as valid *big.Int", orderData.MakerAmount)
@@ -112,6 +120,7 @@ func (e *ExchangeOrderBuilderImplV2) BuildOrder(orderData *model.OrderDataV2) (*
 		Timestamp:     timestamp,
 		Metadata:      common.HexToHash(orderData.Metadata),
 		Builder:       common.HexToHash(orderData.Builder),
+		Expiration:    expiration,
 	}, nil
 }
 
