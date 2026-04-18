@@ -32,10 +32,10 @@ type OrderDataV2 struct {
 	Signer string `json:"signer,omitempty"`
 
 	// SignatureType used by the order. Default value is EOA.
-	SignatureType SignatureType `json:"signatureType,omitempty"`
+	SignatureType SignatureType `json:"signatureType"`
 
 	// Timestamp of the order.
-	Timestamp string `json:"timestamp,omitempty"`
+	Timestamp string `json:"timestamp"`
 
 	// Metadata of the order.
 	Metadata string `json:"metadata,omitempty"`
