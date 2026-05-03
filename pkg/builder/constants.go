@@ -43,6 +43,16 @@ var (
 		eip712.Bytes32, // metadata
 		eip712.Bytes32, // builder
 	}
+
+	_TYPED_DATA_SIGN_STRUCTURE_V2 = []abi.Type{
+		eip712.Bytes32, // typehash
+		eip712.Bytes32, // contents hash
+		eip712.Bytes32, // name hash
+		eip712.Bytes32, // version hash
+		eip712.Uint256, // chainId
+		eip712.Address, // verifyingContract
+		eip712.Bytes32, // salt
+	}
 )
 
 var (
@@ -53,4 +63,11 @@ var (
 	_ORDER_STRUCTURE_HASH_V2 = crypto.Keccak256Hash(
 		[]byte("Order(uint256 salt,address maker,address signer,uint256 tokenId,uint256 makerAmount,uint256 takerAmount,uint8 side,uint8 signatureType,uint256 timestamp,bytes32 metadata,bytes32 builder)"),
 	)
+
+	_TYPED_DATA_SIGN_STRUCTURE_HASH_V2 = crypto.Keccak256Hash(
+		[]byte("TypedDataSign(Order contents,string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)Order(uint256 salt,address maker,address signer,uint256 tokenId,uint256 makerAmount,uint256 takerAmount,uint8 side,uint8 signatureType,uint256 timestamp,bytes32 metadata,bytes32 builder)"),
+	)
+
+	_DEPOSIT_WALLET_NAME_HASH_V2    = crypto.Keccak256Hash([]byte("DepositWallet"))
+	_DEPOSIT_WALLET_VERSION_HASH_V2 = crypto.Keccak256Hash([]byte("1"))
 )

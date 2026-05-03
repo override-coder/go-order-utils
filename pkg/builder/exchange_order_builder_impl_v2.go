@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/polymarket/go-order-utils/pkg/eip712"
 	"github.com/polymarket/go-order-utils/pkg/model"
 	"github.com/polymarket/go-order-utils/pkg/signer"
@@ -47,17 +48,19 @@ func (e *ExchangeOrderBuilderImplV2) BuildSignedOrder(privateKey *ecdsa.PrivateK
 		return nil, err
 	}
 
-	signature, err := e.BuildOrderSignature(privateKey, orderHash)
+	signature, err := e.buildOrderSignatureByType(privateKey, order, contract, orderHash)
 	if err != nil {
 		return nil, err
 	}
 
-	ok, err := signer.ValidateSignature(order.Signer, orderHash, signature)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return nil, fmt.Errorf("signature error")
+	if order.SignatureType.Uint64() != uint64(model.POLY_1271) {
+		ok, err := signer.ValidateSignature(order.Signer, orderHash, signature)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, fmt.Errorf("signature error")
+		}
 	}
 
 	return &model.SignedOrderV2{
@@ -169,6 +172,71 @@ func (e *ExchangeOrderBuilderImplV2) BuildOrderHash(order *model.OrderV2, contra
 // @param order hash
 //
 // @returns a OrderSignature that is []byte
+func (e *ExchangeOrderBuilderImplV2) buildOrderSignatureByType(privateKey *ecdsa.PrivateKey, order *model.OrderV2, contract model.VerifyingContract, orderHash model.OrderHashV2) (model.OrderSignatureV2, error) {
+	if order.SignatureType.Uint64() != uint64(model.POLY_1271) {
+		return e.BuildOrderSignature(privateKey, orderHash)
+	}
+
+	exchangeAddress, err := utils.GetVerifyingContractAddressV2(e.chainId, contract)
+	if err != nil {
+		return nil, err
+	}
+
+	appDomainSep, err := eip712.BuildEIP712DomainSeparator(_PROTOCOL_NAME, _PROTOCOL_VERSION_V2, e.chainId, exchangeAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	orderValues := []interface{}{
+		_ORDER_STRUCTURE_HASH_V2,
+		order.Salt,
+		order.Maker,
+		order.Signer,
+		order.TokenID,
+		order.MakerAmount,
+		order.TakerAmount,
+		uint8(order.Side.Uint64()),
+		uint8(order.SignatureType.Uint64()),
+		order.Timestamp,
+		order.Metadata,
+		order.Builder,
+	}
+	orderEncoded, err := eip712.Encode(_ORDER_STRUCTURE_V2, orderValues)
+	if err != nil {
+		return nil, err
+	}
+	contentsHash := crypto.Keccak256Hash(orderEncoded)
+
+	wrappedValues := []interface{}{
+		_TYPED_DATA_SIGN_STRUCTURE_HASH_V2,
+		contentsHash,
+		_DEPOSIT_WALLET_NAME_HASH_V2,
+		_DEPOSIT_WALLET_VERSION_HASH_V2,
+		e.chainId,
+		order.Signer,
+		common.Hash{},
+	}
+	wrappedHash, err := eip712.HashTypedDataV4(appDomainSep, _TYPED_DATA_SIGN_STRUCTURE_V2, wrappedValues)
+	if err != nil {
+		return nil, err
+	}
+
+	innerSig, err := signer.Sign(privateKey, wrappedHash)
+	if err != nil {
+		return nil, err
+	}
+
+	orderTypeString := []byte("Order(uint256 salt,address maker,address signer,uint256 tokenId,uint256 makerAmount,uint256 takerAmount,uint8 side,uint8 signatureType,uint256 timestamp,bytes32 metadata,bytes32 builder)")
+	orderTypeLen := len(orderTypeString)
+	finalSig := make([]byte, 0, len(innerSig)+32+32+len(orderTypeString)+2)
+	finalSig = append(finalSig, innerSig...)
+	finalSig = append(finalSig, appDomainSep.Bytes()...)
+	finalSig = append(finalSig, contentsHash.Bytes()...)
+	finalSig = append(finalSig, orderTypeString...)
+	finalSig = append(finalSig, byte(orderTypeLen>>8), byte(orderTypeLen))
+	return finalSig, nil
+}
+
 func (e *ExchangeOrderBuilderImplV2) BuildOrderSignature(privateKey *ecdsa.PrivateKey, orderHash model.OrderHashV2) (model.OrderSignatureV2, error) {
 	return signer.Sign(privateKey, orderHash)
 }
