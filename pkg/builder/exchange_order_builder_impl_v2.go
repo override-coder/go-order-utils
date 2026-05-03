@@ -48,7 +48,7 @@ func (e *ExchangeOrderBuilderImplV2) BuildSignedOrder(privateKey *ecdsa.PrivateK
 		return nil, err
 	}
 
-	signature, err := e.buildOrderSignatureByType(privateKey, order, contract, orderHash)
+	signature, err := e.BuildOrderSignatureByType(privateKey, order, contract, orderHash)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (e *ExchangeOrderBuilderImplV2) BuildOrderHash(order *model.OrderV2, contra
 // @param order hash
 //
 // @returns a OrderSignature that is []byte
-func (e *ExchangeOrderBuilderImplV2) buildOrderSignatureByType(privateKey *ecdsa.PrivateKey, order *model.OrderV2, contract model.VerifyingContract, orderHash model.OrderHashV2) (model.OrderSignatureV2, error) {
+func (e *ExchangeOrderBuilderImplV2) BuildOrderSignatureByType(privateKey *ecdsa.PrivateKey, order *model.OrderV2, contract model.VerifyingContract, orderHash model.OrderHashV2) (model.OrderSignatureV2, error) {
 	if order.SignatureType.Uint64() != uint64(model.POLY_1271) {
 		return e.BuildOrderSignature(privateKey, orderHash)
 	}
