@@ -76,7 +76,7 @@ func (e *ExchangeOrderBuilderImplV2) BuildSignedOrder(privateKey *ecdsa.PrivateK
 // @returns a Order object (not signed)
 func (e *ExchangeOrderBuilderImplV2) BuildOrder(orderData *model.OrderDataV2) (*model.OrderV2, error) {
 	var signer common.Address
-	if orderData.Signer == "" {
+	if orderData.Signer == "" || orderData.SignatureType == model.POLY_1271 {
 		signer = common.HexToAddress(orderData.Maker)
 	} else {
 		signer = common.HexToAddress(orderData.Signer)
